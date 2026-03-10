@@ -446,12 +446,83 @@
         height: 140px;
       }
     }
+
+    /* 載入 */
+    .boot-overlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, #0d1326 0%, #02040a 70%);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .boot-panel {
+      width: min(92vw, 680px);
+      padding: 28px 24px;
+      border: 1px solid rgba(0,255,65,0.5);
+      border-radius: 12px;
+      background: rgba(0,0,0,0.75);
+      box-shadow: 0 0 24px rgba(0,255,65,0.18);
+      font-family: "Courier New", monospace;
+      color: #00ff41;
+    }
+
+    .boot-line {
+      opacity: 0;
+      transform: translateY(8px);
+      margin: 10px 0;
+      animation: bootLineIn 0.55s ease forwards;
+    }
+
+    .boot-title{
+      font-size: 32px;
+      font-weight: bold;
+    }
+
+    .boot-success{
+      color:#ffafcc;
+      font-weight:bold;
+    }
+
+    .boot-line:nth-child(1){animation-delay:0.2s;}
+    .boot-line:nth-child(2){animation-delay:0.8s;}
+    .boot-line:nth-child(3){animation-delay:1.4s;}
+    .boot-line:nth-child(4){animation-delay:2s;}
+    .boot-line:nth-child(5){animation-delay:2.6s;}
+
+    @keyframes bootLineIn{
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
+    @keyframes bootFadeOut{
+      to{
+        opacity:0;
+        visibility:hidden;
+      }
+    }
   </style>
 </head>
 <body>
   <audio id="bgMusic" loop>
     <source src="music/bgm.mp3" type="audio/mpeg">
   </audio>
+
+  <div id="bootOverlay" class="boot-overlay active">
+    <div class="boot-panel">
+      <div class="boot-line boot-title">SYSTEM BOOTING...</div>
+      <div class="boot-line">Loading memory fragments...</div>
+      <div class="boot-line">Decrypting private timeline...</div>
+      <div class="boot-line">Verifying access credentials...</div>
+      <div class="boot-line boot-success">Access granted.</div>
+    </div>
+  </div>
+
+
 
   <section id="screen-login" class="screen centered login-screen active">
     <div class="login-box">
@@ -467,10 +538,10 @@
 
   <section id="screen-start" class="screen centered story-screen">
     <div class="story-inner">
-      <h1>📂 檔案解鎖：NO.1996-2026 之秘密紀錄</h1>
+      <h1>📂 檔案解鎖：NO.2021-2026 之秘密紀錄</h1>
       <h2 id="welcomeName">使用者：親愛的，身分確認完畢。</h2>
       <p>你現在進入的是一個被加密的時空節點。這裡記錄了一些重要的線索。</p>
-      <p>若要完整存取最後的「核心檔案」，你需要回溯從你出生到現在的記憶。</p>
+      <p>若要完整存取最後的「核心檔案」，你需要回溯2021年到現在的記憶。</p>
       <p>※ 注意：此操作不可逆，一旦進入，將需要承擔維護責任。</p>
       <a href="#memory" class="story-link" id="toMemoryLink">點擊前往下一關</a>
     </div>
@@ -538,6 +609,19 @@
 
     const routes = ['login', 'start', 'memory', 'vault', 'stars', 'final'];
     
+    // 初始載入動畫
+    const boot = document.getElementById("bootOverlay");
+
+    function closeBoot(){
+      boot.style.animation="bootFadeOut 0.6s forwards";
+      setTimeout(()=>{
+        boot.remove();
+      },600);
+    }
+
+    setTimeout(closeBoot,4300);
+    document.addEventListener("click",closeBoot,{once:true});
+
     function getRoute() {
       const hash = window.location.hash.replace('#', '');
       return routes.includes(hash) ? hash : 'login';
