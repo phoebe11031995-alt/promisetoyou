@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>記憶核心系統</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --pink: #ffafcc;
+      --green: #00ff41;
+      --bg-dark: #0d0d0d;
+      --bg-deep: #1a1a2e;
+      --text: #ffffff;
+      --muted: #888;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100%;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      background: #000;
+      color: var(--text);
+    }
+
+    body {
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .screen {
+      display: none;
+      min-height: 100vh;
+      width: 100%;
+      position: relative;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .centered {
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-screen {
+      background-color: var(--bg-dark);
+      color: var(--green);
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .login-box {
+      border: 1px solid var(--green);
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px var(--green);
+      text-align: center;
+      width: min(92vw, 360px);
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    .login-box h2 {
+      margin-top: 0;
+    }
+
+    .input,
+    .vault-input {
+      background: #000;
+      border: 1px solid var(--green);
+      color: var(--green);
+      padding: 12px;
+      margin-top: 10px;
+      text-align: center;
+      width: 100%;
+      border-radius: 6px;
+      outline: none;
+      font-size: 16px;
+    }
+
+    .btn,
+    .vault-btn {
+      background: var(--green);
+      color: #000;
+      border: none;
+      padding: 12px 20px;
+      margin-top: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    .btn:hover,
+    .vault-btn:hover {
+      background: #00cc35;
+    }
+
+    .error-msg {
+      color: #ff4d4f;
+      min-height: 1.5em;
+      margin-top: 16px;
+      font-weight: bold;
+    }
+
+    .story-screen {
+      background-color: #1a1a1a;
+      text-align: center;
+      padding: 32px 20px;
+      flex-direction: column;
+    }
+
+    .story-inner {
+      max-width: 720px;
+    }
+
+    .story-link {
+      color: var(--pink);
+      display: inline-block;
+      margin-top: 16px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .memory-screen {
+      background: var(--bg-deep);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      overflow: auto;
+    }
+
+    .memory-screen h1 {
+      color: var(--pink);
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px rgba(255,175,204,0.5);
+    }
+
+    .puzzle-container {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+      width: 310px;
+      height: 310px;
+      transition: transform 0.8s ease, box-shadow 0.8s ease, gap 0.8s ease;
+      margin-top: 16px;
+    }
+
+    .win-animation {
+      transform: scale(1.08);
+      box-shadow: 0 0 50px var(--pink), 0 0 100px rgba(255, 175, 204, 0.5);
+      gap: 0;
+    }
+
+    .rotate-piece {
+      width: 100px;
+      height: 100px;
+      background-size: 300px 300px;
+      cursor: pointer;
+      border: 1px solid rgba(255, 175, 204, 0.3);
+      border-radius: 4px;
+      transition: transform 0.3s ease, border 0.5s ease;
+    }
+
+    .memory-message {
+      color: var(--green);
+      margin-top: 20px;
+      font-weight: bold;
+      min-height: 1.5em;
+    }
+
+    .vault-screen {
+      background: #000;
+      color: var(--pink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      overflow: auto;
+    }
+
+    .track-container {
+      width: 300px;
+      height: 80px;
+      border-bottom: 4px solid var(--green);
+      position: relative;
+      margin-bottom: 30px;
+    }
+
+    #runner {
+      position: absolute;
+      bottom: 5px;
+      left: 0;
+      font-size: 40px;
+      transition: left 0.8s ease;
+      transform: scaleX(-1);
+      display: inline-block;
+    }
+
+    .finish-line {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 15px;
+      height: 50px;
+      background: repeating-linear-gradient(white, white 5px, black 5px, black 10px);
+      border: 1px solid white;
+    }
+
+    .vault-box {
+      border: 2px solid var(--pink);
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      width: min(92vw, 360px);
+      background: rgba(255,175,204,0.1);
+    }
+
+    .vault-msg {
+      margin-top: 10px;
+      min-height: 1.5em;
+      font-weight: bold;
+    }
+
+    .stars-screen {
+      background: #050515;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .star-field {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 0 10px white;
+      animation: blink 2s infinite ease-in-out;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    #flash-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.5);
+      z-index: 100;
+      text-align: center;
+      color: var(--pink);
+      font-size: clamp(22px, 4vw, 36px);
+      font-weight: bold;
+      text-shadow: 0 0 25px rgba(255, 175, 204, 1);
+      opacity: 0;
+      pointer-events: none;
+      width: 85%;
+    }
+
+    .flash-animation {
+      animation: zoomInFade 3.5s forwards;
+    }
+
+    @keyframes zoomInFade {
+      0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; }
+      15% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      85% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+    }
+
+    .game-hint {
+      position: fixed;
+      bottom: 60px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1em;
+      letter-spacing: 2px;
+      animation: hintBlink 1.5s infinite;
+      z-index: 2;
+      text-align: center;
+      padding: 0 16px;
+    }
+
+    @keyframes hintBlink {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .highlight-star {
+      background: var(--pink) !important;
+      box-shadow: 0 0 30px var(--pink) !important;
+      cursor: pointer;
+      z-index: 10;
+      width: 20px !important;
+      height: 20px !important;
+      transition: all 0.8s ease;
+    }
+
+    .star-dimmed {
+      width: 4px !important;
+      height: 4px !important;
+      opacity: 0.2 !important;
+      box-shadow: 0 0 5px var(--pink) !important;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .progress {
+      position: fixed;
+      bottom: 25px;
+      color: #888;
+      font-size: 0.8em;
+      z-index: 2;
+    }
+
+    .final-screen {
+      background: linear-gradient(135deg, #1a1a2e 0%, #4a1936 100%);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .heart {
+      position: absolute;
+      color: rgba(255, 175, 204, 0.3);
+      animation: float 6s infinite linear;
+      z-index: 1;
+      user-select: none;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(100vh) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+    }
+
+    .container {
+      max-width: 500px;
+      width: 90%;
+      margin: auto;
+    }
+
+    .couple-photo {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: 4px solid #ffafcc;
+      margin-bottom: 16px;
+    }
+
+    .final-screen h1 {
+      font-size: clamp(32px, 5vw, 44px);
+      color: var(--pink);
+      text-shadow: 0 0 10px rgba(255,175,204,0.5);
+      margin: 10px 0;
+    }
+
+    .final-screen p {
+      font-size: 18px;
+      line-height: 1.6;
+      margin: 10px auto;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      margin-top: 30px;
+      position: relative;
+      width: min(320px, 90vw);
+      height: 100px;
+    }
+
+    .final-btn {
+      padding: 15px 32px;
+      font-size: 1.1em;
+      font-weight: bold;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 110px;
+    }
+
+    #yes-btn {
+      background: var(--pink);
+      color: white;
+      box-shadow: 0 0 20px rgba(255, 175, 204, 0.4);
+    }
+
+    #yes-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 40px rgba(255, 175, 204, 0.8);
+    }
+
+    #no-btn {
+      background: #555;
+      color: #ccc;
+      position: absolute;
+      right: 0;
+      top: 0;
+    }
+
+    #final-msg {
+      display: none;
+      margin-top: 30px;
+      font-size: 1.4em;
+      color: var(--green);
+      font-family: 'Courier New', monospace;
+      line-height: 1.8;
+    }
+
+    .hidden-audio {
+      display: none;
+    }
+
+    @media (max-width: 480px) {
+      .puzzle-container {
+        transform: scale(0.92);
+      }
+
+      .vault-box {
+        padding: 20px 16px;
+      }
+
+      .btn-group {
+        height: 140px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <audio id="bgMusic" loop>
+    <source src="music/bgm.mp3" type="audio/mpeg">
+  </audio>
+
+  <section id="screen-login" class="screen centered login-screen active">
+    <div class="login-box">
+      <h2>需進行身分驗證</h2>
+      <p>請輸入你的姓名：</p>
+      <input class="input" type="text" id="userName" placeholder="格式：XXX" />
+      <p>請輸入你的生日：</p>
+      <input class="input" type="password" id="birthday" placeholder="格式：YYYYMMDD" />
+      <button class="btn" id="loginBtn">執行驗證</button>
+      <div id="loginMsg" class="error-msg"></div>
+    </div>
+  </section>
+
+  <section id="screen-start" class="screen centered story-screen">
+    <div class="story-inner">
+      <h1>📂 檔案解鎖：NO.1996-2026 之秘密紀錄</h1>
+      <h2 id="welcomeName">使用者：親愛的，身分確認完畢。</h2>
+      <p>你現在進入的是一個被加密的時空節點。這裡記錄了一些重要的線索。</p>
+      <p>若要完整存取最後的「核心檔案」，你需要回溯從你出生到現在的記憶。</p>
+      <p>※ 注意：此操作不可逆，一旦進入，將需要承擔維護責任。</p>
+      <a href="#memory" class="story-link" id="toMemoryLink">點擊前往下一關</a>
+    </div>
+  </section>
+
+  <section id="screen-memory" class="screen memory-screen">
+    <h1>🧩 記憶校正：回歸正確位點</h1>
+    <p>點擊每一塊碎片進行旋轉，直到照片恢復正常。</p>
+    <div id="puzzle-container" class="puzzle-container"></div>
+    <p id="memoryMessage" class="memory-message"></p>
+  </section>
+
+  <section id="screen-vault" class="screen vault-screen">
+    <div class="track-container">
+      <div id="runner">🏃‍♂️</div>
+      <div class="finish-line"></div>
+    </div>
+    <div class="vault-box">
+      <div class="score-board">進度：<span id="currentStep">1</span> / 5</div>
+      <h2 id="questionTitle">第一道防禦：核心稱呼</h2>
+      <p id="hintText">提示：你對我的專屬稱呼是什麼？</p>
+      <input class="vault-input" type="text" id="answer" placeholder="輸入答案..." />
+      <button class="vault-btn" id="vaultSubmitBtn">提交數據指令</button>
+      <p id="vaultMsg" class="vault-msg"></p>
+    </div>
+  </section>
+
+  <section id="screen-stars" class="screen stars-screen">
+    <div id="flash-message"></div>
+    <div class="game-hint" id="main-hint">—— 請點擊星空中最閃爍的粉色核心 ——</div>
+    <div class="star-field" id="field"></div>
+    <div class="progress">同步進度：<span id="count">0</span> / 5</div>
+  </section>
+
+  <section id="screen-final" class="screen final-screen">
+    <div class="container">
+      <img id="finalPhoto" src="https://i.postimg.cc/3Nxp92Rf/P1240200-(1).jpg" class="couple-photo" alt="Us" />
+      <h1>最終指令已解鎖</h1>
+      <p>
+        所有記憶節點已同步完成。<br>
+        請依照以下指示，到指定的地點。
+      </p>
+
+      <div class="vault-box" style="margin: 24px auto 0; max-width: 420px; color: #fff;">
+        <!-- <p style="margin: 8px 0; font-size: 18px;"><strong>指定房間：</strong> <span id="roomNumber">[請填入房號]</span></p> -->
+        <p style="margin: 8px 0; font-size: 18px;"><strong>密碼：</strong> <span id="roomCode">[請填入密碼]</span></p>
+        <p style="margin: 18px 0 0; line-height: 1.8; color: #00ff41; font-weight: bold;">
+          請帶著這組密碼，前往指定的地點。<br />
+        </p>
+      </div>
+
+      <div id="final-msg" style="display:block; margin-top: 28px; font-size: 1.15em; color: #ffafcc; line-height: 1.9; font-family: 'Microsoft JhengHei', sans-serif;">
+        &gt;&gt; 請前往指定的地點…
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const CONFIG = {
+      correctName: '洪翊倫',
+      correctBday: '19960206',
+      imageUrl: 'images/S__15425581.jpg',
+      jigsawPhoto: 'images/S__15425582.jpg'
+    };
+
+    const routes = ['login', 'start', 'memory', 'vault', 'stars', 'final'];
+    
+    function getRoute() {
+      const hash = window.location.hash.replace('#', '');
+      return routes.includes(hash) ? hash : 'login';
+    }
+
+    // 音樂撥放
+    const music = document.getElementById("bgMusic");
+
+    document.addEventListener("click", function startMusic() {
+      music.play();
+      document.removeEventListener("click", startMusic);
+    });
+    
+    function showScreen(route) {
+      document.querySelectorAll('.screen').forEach(el => {
+        el.classList.remove('active');
+        el.style.display = 'none';
+      });
+
+      const target = document.getElementById(`screen-${route}`);
+      if (target) {
+        target.classList.add('active');
+        target.style.display = 'flex';
+      }
+    }
+
+    function goTo(route) {
+      if (!routes.includes(route)) return;
+
+      const guardedRoute = guardRoute(route);
+      showScreen(guardedRoute);
+      onRouteEntered(guardedRoute);
+      if (guardedRoute === 'start') updateWelcome();
+
+      if (window.location.hash !== `#${guardedRoute}`) {
+        window.location.hash = guardedRoute;
+      }
+    }
+
+    function guardRoute(route) {
+      const isAuthed = sessionStorage.getItem('auth') === 'success';
+      if (!isAuthed && route !== 'login') {
+        return 'login';
+      }
+      return route;
+    }
+
+    function handleRouting() {
+      const route = guardRoute(getRoute());
+      showScreen(route);
+      if (route === 'start') updateWelcome();
+    }
+
+    function updateWelcome() {
+      const name = sessionStorage.getItem('playerName') || '親愛的';
+      document.getElementById('welcomeName').textContent = `使用者：${name}，身分確認完畢。`;
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const name = document.getElementById('userName').value.trim();
+      const bday = document.getElementById('birthday').value.trim();
+      const msg = document.getElementById('loginMsg');
+
+      if (name === CONFIG.correctName && bday === CONFIG.correctBday) {
+        sessionStorage.setItem('auth', 'success');
+        sessionStorage.setItem('playerName', name);
+        msg.textContent = '';
+        goTo('start');
+      } else {
+        msg.textContent = 'ERROR: 偵測到未授權的使用者。請重新輸入';
+      }
+    });
+
+    document.getElementById('toMemoryLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      goTo('memory');
+    });
+
+    const puzzleContainer = document.getElementById('puzzle-container');
+    const memoryMessage = document.getElementById('memoryMessage');
+    const puzzleRotations = [90, 180, 270, 180, 90, 270, 90, 180, 90];
+    const puzzlePieces = [];
+    let puzzleReady = false;
+
+    function createPuzzle() {
+      if (puzzleReady) return;
+      puzzleContainer.innerHTML = '';
+      puzzlePieces.length = 0;
+
+      for (let i = 0; i < 9; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'rotate-piece';
+        piece.style.backgroundImage = `url('${CONFIG.imageUrl}')`;
+
+        const x = -(i % 3) * 100;
+        const y = -Math.floor(i / 3) * 100;
+        piece.style.backgroundPosition = `${x}px ${y}px`;
+
+        let currentRotation = puzzleRotations[i];
+        piece.style.transform = `rotate(${currentRotation}deg)`;
+
+        piece.addEventListener('click', () => {
+          currentRotation += 90;
+          puzzleRotations[i] = currentRotation;
+          piece.style.transform = `rotate(${currentRotation}deg)`;
+          checkPuzzleWin();
+        });
+
+        puzzleContainer.appendChild(piece);
+        puzzlePieces.push(piece);
+      }
+
+      puzzleReady = true;
+    }
+
+    function checkPuzzleWin() {
+      const isWin = puzzleRotations.every(r => r % 360 === 0);
+      if (!isWin) return;
+
+      memoryMessage.textContent = '🎉 校正完成！記憶數據已完美銜接。';
+      puzzleContainer.classList.add('win-animation');
+      puzzlePieces.forEach(piece => {
+        piece.style.border = 'none';
+        piece.style.pointerEvents = 'none';
+      });
+
+      setTimeout(() => goTo('vault'), 3000);
+    }
+
+    createPuzzle();
+
+    const questions = [
+      { q: '第一道防禦：核心稱呼', h: '提示：你對我的專屬稱呼是什麼？', a: ['貝貝', '小貝', '小珮玉'] },
+      { q: '第二道防禦：初見之地', h: '提示：我們第一次見面的地點在哪裡？', a: ['資統所', '台中教育大學', '中教大', '學校'] },
+      { q: '第三道防禦：定情之物', h: '提示：你送我的第一份生日禮物是什麼？', a: ['漢堡軟糖', '軟糖', '漢堡糖'] },
+      { q: '第四道防禦：幸福時刻', h: '提示：我們第一次一起去旅行的地方', a: ['小琉球'] },
+      { q: '最終防禦：承諾之日', h: '提示：我們正式在一起的日期是？', a: ['20210313', '0313'] }
+    ];
+
+    let currentIdx = 0;
+    const runner = document.getElementById('runner');
+    const trackWidth = 260;
+    const questionTitle = document.getElementById('questionTitle');
+    const hintText = document.getElementById('hintText');
+    const currentStep = document.getElementById('currentStep');
+    const answerInput = document.getElementById('answer');
+    const vaultMsg = document.getElementById('vaultMsg');
+
+    function resetVaultIfNeeded() {
+      if (sessionStorage.getItem('vaultCompleted') === 'true') return;
+      currentIdx = 0;
+      runner.style.left = '0px';
+      runner.textContent = '🏃‍♂️';
+      currentStep.textContent = '1';
+      questionTitle.textContent = questions[0].q;
+      hintText.textContent = questions[0].h;
+      answerInput.value = '';
+      vaultMsg.textContent = '';
+    }
+
+    function checkAnswer() {
+      const userAns = answerInput.value.trim();
+      if (questions[currentIdx].a.includes(userAns)) {
+        currentIdx++;
+        moveRunner();
+      } else {
+        vaultMsg.textContent = '❌ 拒絕存取：記憶數據不匹配';
+        vaultMsg.style.color = '#ff4141';
+      }
+    }
+
+    function moveRunner() {
+      const stepDistance = (currentIdx / 5) * trackWidth;
+      runner.style.left = `${stepDistance}px`;
+
+      if (currentIdx < 5) {
+        vaultMsg.textContent = '✅ 正確！正在前往下一階段...';
+        vaultMsg.style.color = '#00ff41';
+        answerInput.value = '';
+        setTimeout(() => {
+          questionTitle.textContent = questions[currentIdx].q;
+          hintText.textContent = questions[currentIdx].h;
+          currentStep.textContent = currentIdx + 1;
+          vaultMsg.textContent = '';
+        }, 800);
+      } else {
+        runner.textContent = '🏃‍♂️💨';
+        runner.style.left = `${trackWidth + 30}px`;
+        vaultMsg.textContent = '🎊 恭喜完成馬拉松！即將進入最終核心...';
+        vaultMsg.style.color = '#00ff41';
+        sessionStorage.setItem('vaultCompleted', 'true');
+
+        setTimeout(() => {
+          goTo('stars');
+        }, 2000);
+      }
+    }
+
+    document.getElementById('vaultSubmitBtn').addEventListener('click', checkAnswer);
+    answerInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') checkAnswer();
+    });
+
+    const flashBox = document.getElementById('flash-message');
+    const field = document.getElementById('field');
+    const countEl = document.getElementById('count');
+    const mainHint = document.getElementById('main-hint');
+    let starsInitialized = false;
+    let currentCount = 0;
+
+    const quotes = [
+      '無論世界再吵雜，你始終是我最安全的避風港。',
+      '遇見你是我生命中，最珍貴的禮物。',
+      '謝謝你這 1,791 多天的陪伴，讓我成為更好的人。',
+      '未來的日子，我依然想與你攜手共度，創造更多美好回憶。',
+      '恭喜倫寶！成功解鎖。'
+    ];
+
+    function showFlashText(text) {
+      flashBox.textContent = text;
+      flashBox.classList.remove('flash-animation');
+      void flashBox.offsetWidth;
+      flashBox.classList.add('flash-animation');
+    }
+
+    function finishStarsGame() {
+      showFlashText('✨ 核心數據同步完成，即將開啟最終協定... ✨');
+      setTimeout(() => goTo('final'), 3500);
+    }
+
+    function initStarsGame() {
+      if (starsInitialized) return;
+      starsInitialized = true;
+
+      for (let i = 0; i < 70; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const size = Math.random() * 3;
+        s.style.width = `${size}px`;
+        s.style.height = `${size}px`;
+        s.style.left = `${Math.random() * 95}%`;
+        s.style.top = `${Math.random() * 95}%`;
+        s.style.animationDelay = `${Math.random() * 2}s`;
+        field.appendChild(s);
+      }
+
+      const targets = [
+        { x: '15%', y: '25%' },
+        { x: '75%', y: '20%' },
+        { x: '50%', y: '50%' },
+        { x: '25%', y: '75%' },
+        { x: '80%', y: '70%' }
+      ];
+
+      targets.forEach((pos) => {
+        const ts = document.createElement('div');
+        ts.className = 'star highlight-star';
+        ts.style.left = pos.x;
+        ts.style.top = pos.y;
+
+        ts.addEventListener('click', function () {
+          if (this.classList.contains('star-dimmed')) return;
+          this.classList.add('star-dimmed');
+          this.classList.remove('highlight-star');
+          mainHint.style.display = 'none';
+          showFlashText(quotes[currentCount]);
+          currentCount++;
+          countEl.textContent = currentCount;
+
+          if (currentCount === 5) {
+            setTimeout(finishStarsGame, 4000);
+          }
+        });
+
+        field.appendChild(ts);
+      });
+    }
+
+    let heartsStarted = false;
+    function createHearts() {
+      for (let i = 0; i < 20; i++) {
+        setTimeout(() => {
+          const heart = document.createElement('div');
+          heart.className = 'heart';
+          heart.innerHTML = '❤️';
+          heart.style.left = `${Math.random() * 100}vw`;
+          heart.style.fontSize = `${Math.random() * 20 + 20}px`;
+          document.body.appendChild(heart);
+          setTimeout(() => heart.remove(), 6000);
+        }, i * 500);
+      }
+    }
+
+    function initFinalScreen() {
+      if (!heartsStarted) {
+        createHearts();
+        setInterval(createHearts, 10000);
+        heartsStarted = true;
+      }
+    }
+
+    const noBtn = document.getElementById('no-btn');
+    const yesBtn = document.getElementById('yes-btn');
+    const btnGroup = document.getElementById('btnGroup');
+    const finalMsg = document.getElementById('final-msg');
+
+    if (noBtn) {
+      noBtn.addEventListener('mouseover', () => {
+        const maxX = Math.max(window.innerWidth - 120, 0);
+        const maxY = Math.max(window.innerHeight - 60, 0);
+        noBtn.style.left = `${Math.random() * maxX}px`;
+        noBtn.style.top = `${Math.random() * maxY}px`;
+      });
+    }
+
+    if (yesBtn) {
+      yesBtn.addEventListener('click', () => {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#ffafcc', '#ffffff', '#ff1493']
+        });
+
+        if (btnGroup) btnGroup.style.display = 'none';
+        if (finalMsg) finalMsg.style.display = 'block';
+
+        const duration = 15 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+        const interval = setInterval(() => {
+          const timeLeft = animationEnd - Date.now();
+          if (timeLeft <= 0) {
+            clearInterval(interval);
+            return;
+          }
+          const particleCount = 50 * (timeLeft / duration);
+          confetti(Object.assign({}, defaults, {
+            particleCount,
+            origin: { x: Math.random(), y: Math.random() - 0.2 }
+          }));
+        }, 250);
+      });
+    }
+
+    function onRouteEntered(route) {
+      if (route === 'vault') resetVaultIfNeeded();
+      if (route === 'stars') initStarsGame();
+      if (route === 'final') initFinalScreen();
+    }
+
+    window.addEventListener('hashchange', () => {
+      const route = guardRoute(getRoute());
+      showScreen(route);
+      onRouteEntered(route);
+      if (route === 'start') updateWelcome();
+      if (route !== getRoute()) {
+        window.location.hash = route;
+      }
+    });
+
+    document.getElementById('finalPhoto').src = CONFIG.jigsawPhoto;
+    if (!window.location.hash) {
+      window.location.hash = 'login';
+    }
+
+    const initialRoute = guardRoute(getRoute());
+    showScreen(initialRoute);
+    onRouteEntered(initialRoute);
+    if (initialRoute === 'start') updateWelcome();
+    if (initialRoute !== getRoute()) {
+      window.location.hash = initialRoute;
+    } else {
+      const initialRoute = guardRoute(getRoute());
+      showScreen(initialRoute);
+      onRouteEntered(initialRoute);
+      if (initialRoute === 'start') updateWelcome();
+    }
+  </script>
+</body>
+</html>
