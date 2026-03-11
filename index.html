@@ -18,13 +18,19 @@
     * {
       box-sizing: border-box;
     }
-
+    /* 字體設定 */
+    @font-face {
+      font-family: 'ChenYuluoyan';
+      src: url('fonts/ChenYuluoyan-2.0-Thin.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       min-height: 100%;
-      font-family: 'Microsoft JhengHei', sans-serif;
+      font-family: 'ChenYuluoyan', serif;
       background: #000;
       color: var(--text);
     }
@@ -54,7 +60,8 @@
     .login-screen {
       background-color: var(--bg-dark);
       color: var(--green);
-      font-family: 'Courier New', Courier, monospace;
+      font-family: 'ChenYuluoyan', serif;
+      font-size: 28px;
     }
 
     .login-box {
@@ -69,8 +76,11 @@
 
     .login-box h2 {
       margin-top: 0;
+      font-size: 40px;
     }
-
+    p{
+      font-size: 30px;
+    }
     .input,
     .vault-input {
       background: #000;
@@ -119,7 +129,7 @@
     }
 
     .story-inner {
-      max-width: 720px;
+      max-width: 900px;
     }
 
     .story-link {
@@ -128,6 +138,7 @@
       margin-top: 16px;
       font-weight: bold;
       text-decoration: none;
+      font-size: 24px;
     }
 
     .memory-screen {
@@ -144,6 +155,7 @@
       color: var(--pink);
       margin-bottom: 10px;
       text-shadow: 0 0 10px rgba(255,175,204,0.5);
+      font-size: 52px;
     }
 
     .puzzle-container {
@@ -291,7 +303,7 @@
       position: fixed;
       bottom: 60px;
       color: rgba(255, 255, 255, 0.7);
-      font-size: 1em;
+      font-size: 2em;
       letter-spacing: 2px;
       animation: hintBlink 1.5s infinite;
       z-index: 2;
@@ -327,7 +339,7 @@
       position: fixed;
       bottom: 25px;
       color: #888;
-      font-size: 0.8em;
+      font-size: 1.5em;
       z-index: 2;
     }
 
@@ -368,14 +380,22 @@
     }
 
     .final-screen h1 {
-      font-size: clamp(32px, 5vw, 44px);
+      font-size: clamp(52px, 5vw, 44px);
       color: var(--pink);
       text-shadow: 0 0 10px rgba(255,175,204,0.5);
       margin: 10px 0;
     }
-
+    h1 {
+      font-size: clamp(52px, 5vw, 44px);  
+    }
+    h2{
+      font-size: clamp(45px, 4.5vw, 36px);
+    }
+    #questionTitle{
+      font-size: clamp(36px , 3.6vw, 28px);
+    }
     .final-screen p {
-      font-size: 18px;
+      font-size: clamp(30px , 3vw, 22px);
       line-height: 1.6;
       margin: 10px auto;
     }
@@ -425,7 +445,7 @@
       margin-top: 30px;
       font-size: 1.4em;
       color: var(--green);
-      font-family: 'Courier New', monospace;
+      font-family: 'ChenYuluoyan', serif;
       line-height: 1.8;
     }
 
@@ -465,7 +485,7 @@
       border-radius: 12px;
       background: rgba(0,0,0,0.75);
       box-shadow: 0 0 24px rgba(0,255,65,0.18);
-      font-family: "Courier New", monospace;
+      font-family: 'ChenYuluoyan', serif;
       color: #00ff41;
     }
 
@@ -474,6 +494,7 @@
       transform: translateY(8px);
       margin: 10px 0;
       animation: bootLineIn 0.55s ease forwards;
+      font-size: 28px;
     }
 
     .boot-title{
@@ -522,8 +543,6 @@
     </div>
   </div>
 
-
-
   <section id="screen-login" class="screen centered login-screen active">
     <div class="login-box">
       <h2>需進行身分驗證</h2>
@@ -561,7 +580,7 @@
     </div>
     <div class="vault-box">
       <div class="score-board">進度：<span id="currentStep">1</span> / 5</div>
-      <h2 id="questionTitle">第一道防禦：核心稱呼</h2>
+      <h2 id="questionTitle">第一道防禦：<br> 核心稱呼</h2>
       <p id="hintText">提示：你對我的專屬稱呼是什麼？</p>
       <input class="vault-input" type="text" id="answer" placeholder="輸入答案..." />
       <button class="vault-btn" id="vaultSubmitBtn">提交數據指令</button>
@@ -587,13 +606,13 @@
 
       <div class="vault-box" style="margin: 24px auto 0; max-width: 420px; color: #fff;">
         <!-- <p style="margin: 8px 0; font-size: 18px;"><strong>指定房間：</strong> <span id="roomNumber">[請填入房號]</span></p> -->
-        <p style="margin: 8px 0; font-size: 18px;"><strong>密碼：</strong> <span id="roomCode">[請填入密碼]</span></p>
+        <p style="margin: 8px 0; font-size: 26px;"><strong>密碼：</strong> <span id="roomCode">[請填入密碼]</span></p>
         <p style="margin: 18px 0 0; line-height: 1.8; color: #00ff41; font-weight: bold;">
           請帶著這組密碼，前往指定的地點。<br />
         </p>
       </div>
 
-      <div id="final-msg" style="display:block; margin-top: 28px; font-size: 1.15em; color: #ffafcc; line-height: 1.9; font-family: 'Microsoft JhengHei', sans-serif;">
+      <div id="final-msg" style="display:block; margin-top: 28px; font-size: 1.5em; color: #ffafcc; line-height: 1.9; font-family: 'ChenYuluoyan', serif;">
         &gt;&gt; 請前往指定的地點…
       </div>
     </div>
